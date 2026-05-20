@@ -279,13 +279,40 @@ def demo_domain_randomization():
     save_gif(all_frames, "/root/multi_drone_mujoco/demo_gifs/domain_randomization.gif")
 
 
+def demo_vertical_circle():
+    print("Rendering: Vertical circular track...")
+    env = make_env(initial_xyzs=np.array([[0.0, 0.0, 0.5]]))
+    ctrl = PIDControl(env)
+    env.reset()
+
+    # Stabilize at starting point of circle (radius=0.5, center at y=0, z=1.0)
+    radius = 0.5
+    center = np.array([0.0, 0.0, 1.0])
+    start_target = center + np.array([0.0, radius, 0.0])
+    stabilize(env, ctrl, start_target, steps=600)
+
+    frames = []
+    total_steps = 600  # ~2 full loops
+    for i in range(total_steps):
+        theta = 2 * np.pi * (i / 300)  # one loop per 300 steps
+        # Circle in Y-Z plane
+        target = center + np.array([0.0, radius * np.cos(theta), radius * np.sin(theta)])
+        rpm, _, _ = ctrl.computeControl(
+            env.CTRL_TIMESTEP, env.pos[0], env.quat[0], env.vel[0], env.ang_v[0], target)
+        env.step(rpm.flatten())
+        if i % 3 == 0:
+            frames.append(env.render(camera_mode="track"))
+    env.close()
+    save_gif(frames, "/root/multi_drone_mujoco/demo_gifs/vertical_circle.gif")
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("Generating MJ-drones-gym demo GIFs")
     print("=" * 50)
     demos = [demo_hover_track, demo_hover_fixed, demo_hover_fpv,
              demo_multi_drone, demo_formation, demo_wind,
-             demo_obstacles, demo_domain_randomization]
+             demo_obstacles, demo_domain_randomization, demo_vertical_circle]
     for demo in demos:
         try:
             demo()
